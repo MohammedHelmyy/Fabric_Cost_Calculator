@@ -58,12 +58,12 @@ function pkcs8Pem(value) {
 }
 
 async function appJwt(env) {
-  requireEnv(env, ['GITHUB_APP_ID', 'GITHUB_APP_PRIVATE_KEY']);
+  requireEnv(env, ['GITHUB_APP_CLIENT_ID', 'GITHUB_APP_PRIVATE_KEY']);
   const key = await importPKCS8(pkcs8Pem(env.GITHUB_APP_PRIVATE_KEY), 'RS256');
   return new SignJWT({})
     .setProtectedHeader({ alg: 'RS256' })
     .setIssuedAt(Math.floor(Date.now() / 1000) - 60)
-    .setIssuer(env.GITHUB_APP_ID)
+    .setIssuer(env.GITHUB_APP_CLIENT_ID)
     .setExpirationTime('9m')
     .sign(key);
 }
