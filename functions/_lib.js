@@ -78,8 +78,11 @@ async function installationToken(env) {
     method: 'POST',
     headers: { authorization: `Bearer ${jwt}`, accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' }
   });
-  if (!response.ok) throw new Error(`GitHub could not issue an installation token (${response.status}).`);
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = typeof result.message === 'string' ? `: ${result.message}` : '';
+    throw new Error(`GitHub could not issue an installation token (${response.status})${detail}.`);
+  }
   cachedInstallationToken = { value: result.token, expiresAt: Date.parse(result.expires_at) || Date.now() + 50 * 60 * 1000 };
   return cachedInstallationToken.value;
 }
