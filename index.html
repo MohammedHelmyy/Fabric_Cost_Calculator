@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fabric Cost Calculator</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f1f3f8;--card:#fff;--ink:#14203d;--mute:#5a6483;--line:#dbe0ec;--field:#f6f7fb;--accent:#2b3fb8;--on:#fff;
+--s-mat:#2b3fb8;--s-shr:#e3a21a;--s-pit:#18917f;--s-prt:#c63d7b;--s-pro:#e2552b}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1424;--card:#171e34;--ink:#e8ebf6;--mute:#9ba5c4;--line:#2a3452;--field:#111830;--accent:#8c9bff;--on:#0e1424;
+--s-mat:#7f90ff;--s-shr:#f0b73a;--s-pit:#3cc4ae;--s-prt:#ee6ba3;--s-pro:#ff8a5c}}
+:root[data-theme="dark"]{--bg:#0e1424;--card:#171e34;--ink:#e8ebf6;--mute:#9ba5c4;--line:#2a3452;--field:#111830;--accent:#8c9bff;--on:#0e1424;
+--s-mat:#7f90ff;--s-shr:#f0b73a;--s-pit:#3cc4ae;--s-prt:#ee6ba3;--s-pro:#ff8a5c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em}
+.sub{margin:0 0 20px;color:var(--mute)}
+h2{font-size:1.05rem;margin:0 0 14px}
+h3{font-size:.95rem;margin:22px 0 10px}
+.grid{display:grid;gap:16px}
+@media(min-width:860px){.grid{grid-template-columns:1fr 1fr;align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+label.f{display:block;font-size:.88rem;color:var(--mute);margin:0 0 6px}
+.field{margin-bottom:16px}
+select,input[type=number],input[type=text],input:not([type]){width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:420px){.seg{grid-template-columns:repeat(4,1fr)}}
+.seg label{position:relative;display:block}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;text-align:center;border:1px solid var(--line);background:var(--field);border-radius:8px;padding:8px 4px;font-size:.92rem;line-height:1.25}
+.seg em{display:block;font-style:normal;font-size:.8rem;color:var(--mute)}
+.seg input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.seg input:checked+span em{color:inherit;opacity:.85}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.check{display:flex;align-items:center;gap:10px;min-height:42px;cursor:pointer}
+.check input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.check em{font-style:normal;color:var(--mute);margin-left:auto}
+.result{margin-top:6px;padding-top:18px;border-top:1px solid var(--line)}
+.price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price .n{font-size:3rem;line-height:1;font-weight:700;letter-spacing:-.02em}
+.price .u{color:var(--mute)}
+.bar{display:flex;gap:3px;height:16px;margin:16px 0 14px}
+.bar i{display:block;border-radius:4px;min-width:4px}
+.parts{list-style:none;margin:0;padding:0}
+.parts li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.parts b{margin-left:auto;font-weight:600}
+.dot{width:12px;height:12px;border-radius:3px;flex:none}
+.tot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:1.05rem}
+.tot b{font-size:1.25rem}
+.empty{color:var(--mute);margin:0}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:.85rem;color:var(--mute);margin:6px 0 0}
+.mrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.mrow .nm{grid-column:1/3}
+.mrow .x{justify-self:end;width:42px}
+.fl span{display:block;font-size:.78rem;color:var(--mute);margin-bottom:3px}
+.parts .sub{color:var(--mute);border-bottom:0}
+.x{height:42px;border:1px solid var(--line);background:transparent;color:var(--mute);border-radius:8px;font-size:1.2rem;cursor:pointer}
+.x:hover{color:var(--ink);border-color:var(--mute)}
+.add{margin-top:6px;width:100%;min-height:42px;border:1px dashed var(--mute);background:transparent;color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+.add:hover{border-style:solid;border-color:var(--accent)}
+.note{margin-top:14px;font-size:.85rem;color:var(--mute)}
+.process-list{display:grid;gap:8px}
+.process-option{display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer}
+.process-option input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.process-option em{font-style:normal;color:var(--mute);margin-left:auto}
+.extra-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,.55fr) 42px;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.extra-row .fl{min-width:0}
+@media(max-width:420px){.extra-row{grid-template-columns:minmax(0,1fr) 42px}.extra-row .fl:first-child{grid-column:1}.extra-row .fl:nth-child(2){grid-column:1}.extra-row .x{grid-column:2;grid-row:1/3}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Fabric cost calculator</h1>
+  <p class="sub">Calculate fabric, print, and additional processing costs per meter. Prices are in EGP and saved on this device.</p>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="calc-h">
+      <h2 id="calc-h">Calculate</h2>
+      <div class="field">
+        <label class="f" for="mat">Fabric</label>
+        <select id="mat"></select>
+      </div>
+      <div class="field">
+        <label class="f" id="print-l">Print type</label>
+        <div class="seg" id="prints" role="radiogroup" aria-labelledby="print-l"></div>
+      </div>
+      <div class="field">
+        <label class="f" id="extras-label">Additional processing</label>
+        <div class="process-list" id="extras" role="group" aria-labelledby="extras-label"></div>
+      </div>
+      <div class="field">
+        <label class="f" for="meters">Meters</label>
+        <input type="number" id="meters" inputmode="decimal" min="0" step="any">
+      </div>
+      <div class="field">
+        <label class="f" for="profit">Profit (EGP per meter)</label>
+        <input type="number" id="profit" inputmode="decimal" min="0" step="any">
+      </div>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="price-h">
+      <h2 id="price-h">Prices</h2>
+      <h3 style="margin-top:0">Print cost (EGP per meter)</h3>
+      <div id="print-prices"></div>
+      <button type="button" class="add" id="add-print">Add print type</button>
+
+      <h3>Additional processing (EGP per meter)</h3>
+      <div id="extra-prices"></div>
+      <button type="button" class="add" id="add-extra">Add processing</button>
+
+      <h3>Fabrics</h3>
+      <div id="rows"></div>
+      <button type="button" class="add" id="add">Add fabric</button>
+
+      <p class="note">Shrinkage is added to fabric cost, followed by the selected print and any additional processing. Profit is calculated last. The fabric prices shown at first are samples, so replace them with your own.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const KEY='fabric-calc-v1';
+const LEGACY_PRINTS=[['disperse','Disperse'],['digital','Digital'],['pigment','Pigment'],['reactive','Reactive']];
+const defaults={
+  profit:0,
+  mats:[{id:1,name:'Cotton',cost:24,shrink:8,profit:0},{id:2,name:'Polyester',cost:20,shrink:3,profit:0},{id:3,name:'Microfiber',cost:18,shrink:5,profit:0},{id:4,name:'Tergal 120',cost:30,shrink:4,profit:0}],
+  printMethods:[{id:'disperse',name:'Disperse',price:11},{id:'digital',name:'Digital',price:22},{id:'pigment',name:'Pigment',price:7.5},{id:'reactive',name:'Reactive',price:0}],
+  extras:[{id:1,name:'peach',price:6},{id:2,name:'Calendering',price:0},{id:3,name:'Pretreatment',price:0},{id:4,name:'Waterproofing',price:0}],
+  selectedExtras:[],sel:1,print:'none',meters:1,nextId:5,nextExtraId:5,nextPrintId:5};
+let S=load();
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&Array.isArray(o.mats)){
+    const state=Object.assign({},defaults,o);
+    state.mats.forEach(m=>{if(typeof m.profit!=='number')m.profit=0});
+    state.printMethods=Array.isArray(o.printMethods)?o.printMethods:LEGACY_PRINTS.map(([id,name])=>({id,name,price:Math.max(0,Number(o.proc&&o.proc[id])||0)}));
+    state.extras=Array.isArray(o.extras)?o.extras:defaults.extras.map(x=>Object.assign({},x));
+    if(!Array.isArray(o.extras)&&o.proc&&typeof o.proc.peach==='number')state.extras[0].price=o.proc.peach;
+    state.selectedExtras=Array.isArray(o.selectedExtras)?o.selectedExtras:(o.peach?[1]:[]);
+    state.nextExtraId=Math.max(state.nextExtraId,...state.extras.map(x=>Number(x.id)||0))+0;
+    state.nextPrintId=Math.max(state.nextPrintId,...state.printMethods.map(x=>Number(String(x.id).replace(/^print-/,''))||0));
+    if(state.print!=='none'){
+      const selected=state.printMethods.find(x=>String(x.id)===String(state.print)||x.name.toLowerCase()===String(state.print).toLowerCase());
+      state.print=selected?selected.id:'none';
+    }
+    if(o.ptype==='percent')state.mats.forEach(m=>{
+      const print=state.print==='none'?0:(state.printMethods.find(x=>x.id===state.print)?.price||0);
+      const extra=state.extras.filter(x=>state.selectedExtras.includes(x.id)).reduce((sum,x)=>sum+Math.max(0,Number(x.price)||0),0);
+      const cost=m.cost*(1+m.shrink/100)+print+extra;
+      m.profit=cost*m.profit/100;
+    });
+    if(typeof o.profit!=='number'){
+      const selectedMat=state.mats.find(m=>m.id===state.sel)||state.mats[0];
+      state.profit=selectedMat?Math.max(0,Number(selectedMat.profit)||0):0;
+    }
+    state.mats.forEach(m=>delete m.profit);
+    delete state.ptype;delete state.proc;delete state.peach;
+    return state;
+  }}}catch(e){}
+  return JSON.parse(JSON.stringify(defaults));
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>{const n=parseFloat(v);return isFinite(n)&&n>0?n:0};
+
+function fixSel(){if(!S.mats.some(m=>m.id===S.sel))S.sel=S.mats.length?S.mats[0].id:0}
+
+function calc(){
+  const m=S.mats.find(x=>x.id===S.sel);
+  if(!m)return null;
+  const s=m.shrink/100;
+  const adj=m.cost*(1+s);
+  const printMethod=S.print==='none'?null:S.printMethods.find(x=>String(x.id)===String(S.print));
+  const print=printMethod?num(printMethod.price):0;
+  const extras=S.extras.filter(x=>S.selectedExtras.includes(x.id));
+  const extraTotal=extras.reduce((sum,x)=>sum+num(x.price),0);
+  const cost=adj+print+extraTotal,profit=S.profit;
+  return{m,base:m.cost,shr:adj-m.cost,print,printMethod,extras,extraTotal,cost,profit,total:cost+profit};
+}
+
+function renderSelect(){
+  $('#mat').innerHTML=S.mats.map(m=>`<option value="${m.id}"${m.id===S.sel?' selected':''}>${esc(m.name||'Unnamed')}</option>`).join('');
+}
+function renderPrints(){
+  $('#prints').innerHTML=`<label><input type="radio" name="print" value="none"${S.print==='none'?' checked':''}><span>No print</span></label>`+S.printMethods.map(x=>`<label><input type="radio" name="print" value="${esc(x.id)}"${String(S.print)===String(x.id)?' checked':''}><span>${esc(x.name||'Unnamed print') }<em>+${fmt(num(x.price))}</em></span></label>`).join('');
+  $('#extras').innerHTML=S.extras.map(x=>`<label class="process-option"><input type="checkbox" data-extra-select="${x.id}"${S.selectedExtras.includes(x.id)?' checked':''}><span>${esc(x.name||'Unnamed process')}</span><em>+${fmt(num(x.price))}</em></label>`).join('')||'<p class="hint">Add a process under Prices to make it selectable.</p>';
+}
+function renderPrintPrices(){
+  $('#print-prices').innerHTML=S.printMethods.map(x=>`<div class="extra-row" data-print-id="${esc(x.id)}"><label class="fl"><span>Print type</span><input type="text" data-print-field="name" value="${esc(x.name)}" aria-label="Print type"></label><label class="fl"><span>Price / m</span><input type="number" data-print-field="price" inputmode="decimal" min="0" step="any" value="${num(x.price)}"></label><button type="button" class="x" data-print-del aria-label="Remove ${esc(x.name)}">×</button></div>`).join('')||'<p class="hint">Add a print type to make printing selectable.</p>';
+}
+function renderExtraPrices(){
+  $('#extra-prices').innerHTML=S.extras.map(x=>`<div class="extra-row" data-extra-id="${x.id}"><label class="fl"><span>Process name</span><input type="text" data-extra-field="name" value="${esc(x.name)}" aria-label="Process name"></label><label class="fl"><span>Price / m</span><input type="number" data-extra-field="price" inputmode="decimal" min="0" step="any" value="${num(x.price)}"></label><button type="button" class="x" data-extra-del aria-label="Remove ${esc(x.name)}">×</button></div>`).join('');
+}
+function renderRows(){
+  $('#rows').innerHTML=S.mats.map(m=>`<div class="mrow" data-id="${m.id}"><input type="text" class="nm" data-f="name" value="${esc(m.name)}" aria-label="Fabric name"><button type="button" class="x" data-del aria-label="Remove ${esc(m.name)}">×</button><label class="fl"><span>Cost / m</span><input type="number" data-f="cost" inputmode="decimal" min="0" step="any" value="${m.cost}"></label><label class="fl"><span>Shrink %</span><input type="number" data-f="shrink" inputmode="decimal" min="0" max="90" step="any" value="${m.shrink}"></label></div>`).join('');
+}
+function renderResult(){
+  const el=$('#result'),r=calc();
+  if(!r){el.innerHTML='<p class="empty">Add a fabric under Prices to start.</p>';return}
+  const parts=[['Fabric cost',r.base,'--s-mat'],[`Shrinkage (${r.m.shrink}%)`,r.shr,'--s-shr']];
+  if(r.printMethod)parts.push([r.printMethod.name+' print',r.print,'--s-prt']);
+  r.extras.forEach(x=>parts.push([x.name,num(x.price),'--s-pit']));
+  if(r.profit>0)parts.push(['Profit',r.profit,'--s-pro']);
+  el.innerHTML=`<div class="price"><span class="n">${fmt(r.total)}</span><span class="u">EGP per meter, selling price</span></div>
+  <div class="bar">${parts.filter(p=>p[1]>0).map(p=>`<i style="flex:${p[1]};background:var(${p[2]})"></i>`).join('')}</div>
+  <ul class="parts">${parts.map(p=>`<li><span class="dot" style="background:var(${p[2]})"></span>${esc(p[0])}<b>${fmt(p[1])}</b></li>`).join('')}<li class="sub">Cost before profit<b>${fmt(r.cost)}</b></li></ul>
+  <div class="tot"><span>${S.meters} m</span><b>EGP ${fmt(r.total*S.meters)}</b></div>
+  <p class="hint">Profit on ${S.meters} m: EGP ${fmt(r.profit*S.meters)}</p>`;
+}
+function renderAll(){fixSel();renderSelect();renderPrints();renderPrintPrices();renderExtraPrices();renderRows();renderResult()}
+
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='mat')S.sel=+t.value;
+  else if(t.name==='print')S.print=t.value;
+  else if(t.dataset.extraSelect){const id=+t.dataset.extraSelect;S.selectedExtras=t.checked?[...new Set([...S.selectedExtras,id])]:S.selectedExtras.filter(x=>x!==id)}
+  else if(t.id==='meters')S.meters=num(t.value);
+  else if(t.id==='profit')S.profit=num(t.value);
+  else if(t.dataset.printField){const method=S.printMethods.find(x=>String(x.id)===t.closest('.extra-row').dataset.printId);method[t.dataset.printField]=t.dataset.printField==='name'?t.value:num(t.value);if(t.dataset.printField==='name'){const option=$(`input[name="print"][value="${CSS.escape(String(method.id))}"]`);if(option){option.nextElementSibling.firstChild.textContent=method.name||'Unnamed print';const remove=t.closest('.extra-row').querySelector('[data-print-del]');remove.setAttribute('aria-label','Remove '+(method.name||'Unnamed print'))}}else{const option=$(`input[name="print"][value="${CSS.escape(String(method.id))}"]`);if(option)option.nextElementSibling.querySelector('em').textContent='+'+fmt(method.price)}}
+  else if(t.dataset.extraField){const extra=S.extras.find(x=>x.id===+t.closest('.extra-row').dataset.extraId);extra[t.dataset.extraField]=t.dataset.extraField==='name'?t.value:num(t.value);if(t.dataset.extraField==='name'){const option=$(`[data-extra-select="${extra.id}"]`);if(option)option.nextElementSibling.textContent=extra.name||'Unnamed process';const del=t.closest('.extra-row').querySelector('[data-extra-del]');del.setAttribute('aria-label','Remove '+(extra.name||'Unnamed process'))}else{const option=$(`[data-extra-select="${extra.id}"]`);if(option)option.nextElementSibling.nextElementSibling.textContent='+'+fmt(extra.price)}}
+  else if(t.dataset.f){
+    const m=S.mats.find(x=>x.id===+t.closest('.mrow').dataset.id);
+    m[t.dataset.f]=t.dataset.f==='name'?t.value:num(t.value);
+    if(t.dataset.f==='name')renderSelect();
+  }else return;
+  save();renderResult();
+});
+document.addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  const extraDel=e.target.closest('[data-extra-del]');
+  const printDel=e.target.closest('[data-print-del]');
+  if(del){
+    const id=+del.closest('.mrow').dataset.id;
+    S.mats=S.mats.filter(m=>m.id!==id);
+    save();renderAll();
+  }else if(extraDel){
+    const id=+extraDel.closest('.extra-row').dataset.extraId;
+    S.extras=S.extras.filter(x=>x.id!==id);S.selectedExtras=S.selectedExtras.filter(x=>x!==id);save();renderAll();
+  }else if(printDel){
+    const id=printDel.closest('.extra-row').dataset.printId;
+    S.printMethods=S.printMethods.filter(x=>String(x.id)!==id);if(String(S.print)===id)S.print='none';save();renderAll();
+  }else if(e.target.closest('#add-extra')){
+    S.extras.push({id:S.nextExtraId++,name:'New process',price:0});save();renderAll();
+    const last=document.querySelector('#extra-prices .extra-row:last-child input');if(last){last.focus();last.select()}
+  }else if(e.target.closest('#add-print')){
+    const id='print-'+S.nextPrintId++;
+    S.printMethods.push({id,name:'New print type',price:0});save();renderAll();
+    const last=document.querySelector('#print-prices .extra-row:last-child input');if(last){last.focus();last.select()}
+  }else if(e.target.closest('#add')){
+    S.mats.push({id:S.nextId++,name:'New fabric',cost:0,shrink:0,profit:0});
+    save();renderAll();
+    const last=document.querySelector('#rows .mrow:last-child input');
+    if(last){last.focus();last.select()}
+  }
+});
+
+$('#meters').value=S.meters;
+$('#profit').value=S.profit;
+renderAll();
+</script>
+</body>
+</html>
