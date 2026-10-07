@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "profit": 0,
+  "mats": [
+    { "id": 1, "name": "Cotton", "cost": 24, "shrink": 8 },
+    { "id": 2, "name": "Polyester", "cost": 20, "shrink": 3 },
+    { "id": 3, "name": "Microfiber", "cost": 18, "shrink": 5 },
+    { "id": 4, "name": "Tergal 120", "cost": 30, "shrink": 4 }
+  ],
+  "printMethods": [
+    { "id": "disperse", "name": "Disperse", "price": 11 },
+    { "id": "digital", "name": "Digital", "price": 22 },
+    { "id": "pigment", "name": "Pigment", "price": 7.5 },
+    { "id": "reactive", "name": "Reactive", "price": 0 }
+  ],
+  "extras": [
+    { "id": 1, "name": "Peach", "price": 6 },
+    { "id": 2, "name": "Calendering", "price": 0 },
+    { "id": 3, "name": "Pretreatment", "price": 0 },
+    { "id": 4, "name": "Waterproofing", "price": 0 }
+  ],
+  "selectedExtras": [],
+  "sel": 1,
+  "print": "none",
+  "meters": 1,
+  "nextId": 5,
+  "nextExtraId": 5,
+  "nextPrintId": 5
+}

@@ -1,0 +1,11 @@
+{
+  "name": "fabric-cost-calculator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "jose": "^5.9.6"
+  }
+}

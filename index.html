@@ -64,6 +64,11 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid 
 .add{margin-top:6px;width:100%;min-height:42px;border:1px dashed var(--mute);background:transparent;color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
 .add:hover{border-style:solid;border-color:var(--accent)}
 .note{margin-top:14px;font-size:.85rem;color:var(--mute)}
+.syncbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.syncbar button,.syncbar a{min-height:40px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;text-decoration:none;cursor:pointer}
+.syncbar button:disabled{opacity:.5;cursor:not-allowed}
+.syncbar #publish{background:var(--accent);border-color:var(--accent);color:var(--on)}
+.syncbar [role=status]{font-size:.85rem;color:var(--mute);flex:1 1 220px}
 .process-list{display:grid;gap:8px}
 .process-option{display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer}
 .process-option input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
@@ -76,7 +81,14 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid 
 <body>
 <div class="wrap">
   <h1>Fabric cost calculator</h1>
-  <p class="sub">Calculate fabric, print, and additional processing costs per meter. Prices are in EGP and saved on this device.</p>
+  <p class="sub">Calculate fabric, print, and additional processing costs per meter. Prices are in EGP; approved users can publish shared settings to GitHub.</p>
+  <div class="syncbar" aria-label="Shared settings">
+    <button type="button" id="load-published" disabled>Load published</button>
+    <a id="sign-in" href="/api/auth/login" hidden>Sign in with GitHub</a>
+    <button type="button" id="publish" disabled>Publish settings</button>
+    <button type="button" id="sign-out" hidden>Sign out</button>
+    <span id="sync-status" role="status" aria-live="polite">Shared publishing is available from the hosted calculator.</span>
+  </div>
 
   <div class="grid">
     <section class="card" aria-labelledby="calc-h">
@@ -133,6 +145,10 @@ const defaults={
   extras:[{id:1,name:'peach',price:6},{id:2,name:'Calendering',price:0},{id:3,name:'Pretreatment',price:0},{id:4,name:'Waterproofing',price:0}],
   selectedExtras:[],sel:1,print:'none',meters:1,nextId:5,nextExtraId:5,nextPrintId:5};
 let S=load();
+let publishedSha='';
+let syncAvailable=false;
+let signedInAs='';
+let localDraftDiffers=false;
 function load(){
   try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&Array.isArray(o.mats)){
     const state=Object.assign({},defaults,o);
@@ -164,6 +180,114 @@ function load(){
   return JSON.parse(JSON.stringify(defaults));
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function snapshot(value=S){
+  return{
+    version:1,profit:num(value.profit),
+    mats:value.mats.map(({id,name,cost,shrink})=>({id,name,cost,shrink})),
+    printMethods:value.printMethods.map(({id,name,price})=>({id,name,price})),
+    extras:value.extras.map(({id,name,price})=>({id,name,price})),
+    selectedExtras:[...value.selectedExtras],sel:value.sel,print:value.print,meters:value.meters,
+    nextId:value.nextId,nextExtraId:value.nextExtraId,nextPrintId:value.nextPrintId
+  };
+}
+
+function applySettings(value){
+  if(!value||!Array.isArray(value.mats)||!Array.isArray(value.printMethods)||!Array.isArray(value.extras))throw new Error('Published settings have an invalid format.');
+  S=Object.assign({},defaults,value,{
+    mats:value.mats.map(item=>Object.assign({},item)),
+    printMethods:value.printMethods.map(item=>Object.assign({},item)),
+    extras:value.extras.map(item=>Object.assign({},item)),
+    selectedExtras:Array.isArray(value.selectedExtras)?[...value.selectedExtras]:[]
+  });
+  fixSel();
+  $('#meters').value=S.meters;
+  $('#profit').value=S.profit;
+  renderAll();
+  save();
+}
+
+function setSyncStatus(message){$('#sync-status').textContent=message}
+
+function updateSyncControls(){
+  $('#load-published').disabled=!syncAvailable;
+  $('#publish').disabled=!syncAvailable||!signedInAs;
+  $('#sign-in').hidden=!syncAvailable||Boolean(signedInAs);
+  $('#sign-out').hidden=!signedInAs;
+}
+
+async function getPublished(){
+  const response=await fetch('/api/settings',{cache:'no-store'});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'Could not load settings from GitHub.');
+  if(!data.settings||!data.sha)throw new Error('GitHub returned an incomplete settings response.');
+  return data;
+}
+
+async function loadPublished(){
+  setSyncStatus('Loading the latest settings from GitHub...');
+  try{
+    const data=await getPublished();
+    publishedSha=data.sha;
+    localDraftDiffers=false;
+    applySettings(data.settings);
+    setSyncStatus('Loaded the latest published settings.');
+  }catch(error){setSyncStatus(error.message)}
+}
+
+async function refreshSession(){
+  try{
+    const response=await fetch('/api/session',{cache:'no-store'});
+    const data=await response.json();
+    signedInAs=response.ok?data.login||'':'';
+  }catch{signedInAs=''}
+  updateSyncControls();
+}
+
+async function publishSettings(){
+  if(!signedInAs||!publishedSha)return;
+  if(localDraftDiffers&&!window.confirm('This local draft differs from the settings currently in GitHub. Publishing will replace the repo settings. Continue?'))return;
+  $('#publish').disabled=true;
+  setSyncStatus('Publishing settings to GitHub...');
+  try{
+    const response=await fetch('/api/publish',{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({settings:snapshot(),sha:publishedSha})
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'GitHub could not publish the settings.');
+    publishedSha=data.sha;
+    localDraftDiffers=false;
+    save();
+    setSyncStatus(`Published to the repo as ${data.publishedBy}.`);
+  }catch(error){setSyncStatus(error.message)}
+  updateSyncControls();
+}
+
+async function initializeSync(){
+  let hasLocalSettings=false;
+  try{hasLocalSettings=localStorage.getItem(KEY)!==null}catch(e){}
+  try{
+    const data=await getPublished();
+    publishedSha=data.sha;
+    syncAvailable=true;
+    if(!hasLocalSettings){
+      applySettings(data.settings);
+      setSyncStatus('Loaded published settings from GitHub.');
+    }else if(JSON.stringify(snapshot())!==JSON.stringify(snapshot(data.settings))){
+      localDraftDiffers=true;
+      setSyncStatus('This device has a local draft. Load published settings or sign in to publish this draft.');
+    }else{
+      setSyncStatus('Settings match the latest version in GitHub.');
+    }
+    updateSyncControls();
+    await refreshSession();
+  }catch(error){
+    syncAvailable=false;
+    updateSyncControls();
+    setSyncStatus('Local-only mode. Publishing is available after Cloudflare setup.');
+  }
+}
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -231,8 +355,15 @@ document.addEventListener('input',e=>{
     if(t.dataset.f==='name')renderSelect();
   }else return;
   save();renderResult();
+  if(syncAvailable)setSyncStatus('Local draft saved. Publish settings to share this change.');
 });
 document.addEventListener('click',e=>{
+  if(e.target.closest('#load-published')){loadPublished();return}
+  if(e.target.closest('#publish')){publishSettings();return}
+  if(e.target.closest('#sign-out')){
+    fetch('/api/auth/logout',{method:'POST'}).finally(()=>{signedInAs='';updateSyncControls();setSyncStatus('Signed out. Local changes remain saved on this device.')});
+    return;
+  }
   const del=e.target.closest('[data-del]');
   const extraDel=e.target.closest('[data-extra-del]');
   const printDel=e.target.closest('[data-print-del]');
@@ -264,6 +395,7 @@ document.addEventListener('click',e=>{
 $('#meters').value=S.meters;
 $('#profit').value=S.profit;
 renderAll();
+initializeSync();
 </script>
 </body>
 </html>
